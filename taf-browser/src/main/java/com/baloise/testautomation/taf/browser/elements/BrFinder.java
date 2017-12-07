@@ -1,36 +1,54 @@
 package com.baloise.testautomation.taf.browser.elements;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
+import com.baloise.testautomation.taf.base._interfaces.IAnnotations.*;
+import com.baloise.testautomation.taf.browser.interfaces.IBrowserFinder;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByCssSelector;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByCustom;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ById;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByName;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByText;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByXpath;
-import com.baloise.testautomation.taf.browser.interfaces.IBrowserFinder;
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 
 public class BrFinder implements IBrowserFinder<WebElement> {
 
+  private Map<Class<? extends Annotation>, WebElementFinder> supportedBys;
   protected WebDriver driver = null;
 
   protected int timeoutInSeconds = 10;
 
+  @Deprecated
+  /**
+   * @deprecated Please use {@link #BrFinder(Map, WebDriver)}
+   * @link com.baloise.testautomation.taf.base._base.ABase#getSupportedBys
+   * @param driver The Webdriver used by this class
+   */
   public BrFinder(WebDriver driver) {
-    this.driver = driver;
+    this(null, driver);
   }
-  
+
+  @Deprecated
+  /**
+   * @deprecated Please use {@link #BrFinder(Map, WebDriver, int)}
+   * @link com.baloise.testautomation.taf.base._base.ABase#getSupportedBys
+   * @param driver The Webdriver used by this class
+   */
   public BrFinder(WebDriver driver, int timeoutInSeconds) {
+    this(null, driver, timeoutInSeconds);
+  }
+
+  public BrFinder(Map<Class<? extends Annotation>, WebElementFinder> supportedBys, WebDriver driver) {
+    this(supportedBys, driver, 10);
+  }
+
+  public BrFinder(Map<Class<? extends Annotation>, WebElementFinder> supportedBys, WebDriver driver, int timeoutInSeconds) {
+    this.supportedBys = supportedBys;
     this.driver = driver;
     this.timeoutInSeconds = timeoutInSeconds;
     setDefaultTimeoutInMsecs();
@@ -47,23 +65,30 @@ public class BrFinder implements IBrowserFinder<WebElement> {
 
   @Override
   public WebElement find(WebElement root, Annotation annotation) {
-    if (annotation instanceof ById) {
-      return findById(root, (ById)annotation);
-    }
-    if (annotation instanceof ByText) {
-      return findByText(root, (ByText)annotation);
-    }
-    if (annotation instanceof ByCssSelector) {
-      return findByCssSelector(root, (ByCssSelector)annotation);
-    }
-    if (annotation instanceof ByCustom) {
-      return findByCustom(root, (ByCustom)annotation);
-    }
-    if (annotation instanceof ByXpath) {
-      return findByXpath(root, (ByXpath)annotation);
-    }
-    if (annotation instanceof ByName) {
-      return findByName(root, (ByName)annotation);
+    if (supportedBys == null) {
+      if (annotation instanceof ById) {
+        return findById(root, (ById) annotation);
+      }
+      if (annotation instanceof ByText) {
+        return findByText(root, (ByText) annotation);
+      }
+      if (annotation instanceof ByCssSelector) {
+        return findByCssSelector(root, (ByCssSelector) annotation);
+      }
+      if (annotation instanceof ByCustom) {
+        return findByCustom(root, (ByCustom) annotation);
+      }
+      if (annotation instanceof ByXpath) {
+        return findByXpath(root, (ByXpath) annotation);
+      }
+      if (annotation instanceof ByName) {
+        return findByName(root, (ByName) annotation);
+      }
+    } else {
+      WebElementFinder finder = supportedBys.get(annotation.annotationType());
+      if (finder != null) {
+        return finder.findElement(annotation, root == null ? driver : root);
+      }
     }
     fail("annotation not yet supported: " + annotation.annotationType());
     return null;

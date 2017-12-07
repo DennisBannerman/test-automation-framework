@@ -1,9 +1,16 @@
 package com.baloise.testautomation.taf.base._base;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.baloise.testautomation.taf.base._interfaces.IAnnotations.*;
+import com.baloise.testautomation.taf.base._interfaces.*;
+import com.baloise.testautomation.taf.base.csv.CsvDataImporter;
+import com.baloise.testautomation.taf.base.excel.ExcelDataImporter;
+import com.baloise.testautomation.taf.base.types.TafId;
+import com.baloise.testautomation.taf.base.types.TafString;
+import com.baloise.testautomation.taf.base.types.TafType;
+import com.baloise.testautomation.taf.common.interfaces.IFinder;
+import org.junit.Rule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
@@ -11,47 +18,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 
-import org.junit.Rule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.*;
 
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByCssSelector;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByCustom;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ById;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByLeftLabel;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByName;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByText;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.ByXpath;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.Check;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.CheckData;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.Data;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.DataProvider;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.Excel;
-import com.baloise.testautomation.taf.base._interfaces.IAnnotations.Fill;
-import com.baloise.testautomation.taf.base._interfaces.ICheck;
-import com.baloise.testautomation.taf.base._interfaces.IComponent;
-import com.baloise.testautomation.taf.base._interfaces.IData;
-import com.baloise.testautomation.taf.base._interfaces.IDataProvider;
-import com.baloise.testautomation.taf.base._interfaces.IDataRow;
-import com.baloise.testautomation.taf.base._interfaces.IElement;
-import com.baloise.testautomation.taf.base._interfaces.IFill;
-import com.baloise.testautomation.taf.base._interfaces.IType;
-import com.baloise.testautomation.taf.base.csv.CsvDataImporter;
-import com.baloise.testautomation.taf.base.excel.ExcelDataImporter;
-import com.baloise.testautomation.taf.base.types.TafId;
-import com.baloise.testautomation.taf.base.types.TafString;
-import com.baloise.testautomation.taf.base.types.TafType;
-import com.baloise.testautomation.taf.common.interfaces.IFinder;
-
-public abstract class ABase implements IComponent {
+public abstract class ABase<T extends ElementFinder> implements IComponent {
 
   public static Logger logger = LoggerFactory.getLogger("TAF");
 
@@ -65,7 +36,11 @@ public abstract class ABase implements IComponent {
   public Annotation by = null;
   public Annotation check = null;
 
+  private Map<Class<? extends Annotation>, T> supportedBys;
+
   public ABase() {
+    supportedBys = createSupportedBys();
+    addAdditionalSupportedBys();
     initFields();
   }
 
@@ -172,7 +147,7 @@ public abstract class ABase implements IComponent {
   public Annotation getByAnnotation(Field f) {
     Annotation[] annotations = f.getAnnotations();
     for (Annotation annotation : annotations) {
-      if (getSupportedBys().contains(annotation.annotationType())) {
+      if (getSupportedBys().containsKey(annotation.annotationType())) {
         return annotation;
       }
     }
@@ -293,16 +268,8 @@ public abstract class ABase implements IComponent {
     return null;
   }
 
-  public Collection<Class<?>> getSupportedBys() {
-    Vector<Class<?>> bys = new Vector<Class<?>>();
-    bys.add(ById.class);
-    bys.add(ByText.class);
-    bys.add(ByName.class);
-    bys.add(ByXpath.class);
-    bys.add(ByCssSelector.class);
-    bys.add(ByCustom.class);
-    bys.add(ByLeftLabel.class);
-    return bys;
+  public Map<Class<? extends Annotation>, T> getSupportedBys() {
+    return supportedBys;
   }
 
   @Override
@@ -654,4 +621,43 @@ public abstract class ABase implements IComponent {
     this.name = name;
   }
 
+  private Map<Class<? extends Annotation>, T> createSupportedBys() {
+    supportedBys = new HashMap<>();
+    registerSupportedBy(ById.class, getByIdFinder());
+    registerSupportedBy(ByText.class, getByTextFinder());
+    registerSupportedBy(ByName.class, getByNameFinder());
+    registerSupportedBy(ByXpath.class, getByXpathFinder());
+    registerSupportedBy(ByCssSelector.class, getByCssSelectorFinder());
+    registerSupportedBy(ByCustom.class, getByCustomFinder());
+    registerSupportedBy(ByLeftLabel.class, getByLeftLabelFinder());
+    return supportedBys;
+  }
+
+  protected abstract T getByIdFinder();
+
+  protected abstract T getByTextFinder();
+
+  protected abstract T getByNameFinder();
+
+  protected abstract T getByXpathFinder();
+
+  protected abstract T getByCssSelectorFinder();
+
+  protected abstract T getByCustomFinder();
+
+  protected abstract T getByLeftLabelFinder();
+
+  private void addAdditionalSupportedBys() {
+    for (T elementFinder : getAdditionalSupportedBys()) {
+      registerSupportedBy(elementFinder.getAnnotationClass(), elementFinder);
+    }
+  }
+
+  protected List<T> getAdditionalSupportedBys() {
+    return Collections.emptyList();
+  }
+
+  protected void registerSupportedBy(Class<? extends Annotation> annotation, T finder) {
+    supportedBys.put(annotation, finder);
+  }
 }
