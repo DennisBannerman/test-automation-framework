@@ -65,7 +65,10 @@ public abstract class ABase implements IComponent {
   public Annotation by = null;
   public Annotation check = null;
 
+  private Collection<Class<? extends Annotation>> supportedBys;
+
   public ABase() {
+    supportedBys = createSupportedBys();
     initFields();
   }
 
@@ -310,16 +313,8 @@ public abstract class ABase implements IComponent {
     return null;
   }
 
-  public Collection<Class<?>> getSupportedBys() {
-    Vector<Class<?>> bys = new Vector<Class<?>>();
-    bys.add(ById.class);
-    bys.add(ByText.class);
-    bys.add(ByName.class);
-    bys.add(ByXpath.class);
-    bys.add(ByCssSelector.class);
-    bys.add(ByCustom.class);
-    bys.add(ByLeftLabel.class);
-    return bys;
+  public Collection<Class<? extends Annotation>> getSupportedBys() {
+    return supportedBys;
   }
 
   @Override
@@ -686,4 +681,22 @@ public abstract class ABase implements IComponent {
     }
     catch (Exception e) {}
   }
+
+  private Collection<Class<? extends Annotation>> createSupportedBys() {
+    Collection<Class<? extends Annotation>> supportedBys = new ArrayList<>();
+    supportedBys.add(ById.class);
+    supportedBys.add(ByText.class);
+    supportedBys.add(ByName.class);
+    supportedBys.add(ByXpath.class);
+    supportedBys.add(ByCssSelector.class);
+    supportedBys.add(ByCustom.class);
+    supportedBys.add(ByLeftLabel.class);
+    supportedBys.addAll(getAdditionalSupportedBys());
+    return supportedBys;
+  }
+
+  protected Collection<Class<? extends Annotation>> getAdditionalSupportedBys() {
+    return Collections.emptyList();
+  }
+
 }
